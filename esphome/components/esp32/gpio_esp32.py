@@ -13,8 +13,6 @@ import esphome.config_validation as cv
 
 _ESP_SDIO_PINS = {
     6: "Flash Clock",
-    7: "Flash Data 0",
-    8: "Flash Data 1",
     11: "Flash Command",
 }
 
