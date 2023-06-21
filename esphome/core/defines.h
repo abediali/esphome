@@ -17,6 +17,7 @@
 #define USE_API
 #define USE_API_NOISE
 #define USE_API_PLAINTEXT
+#define USE_ALARM_CONTROL_PANEL
 #define USE_BINARY_SENSOR
 #define USE_BUTTON
 #define USE_CLIMATE
@@ -100,6 +101,10 @@
 #define USE_SHD_FIRMWARE_DATA \
   {}
 
+#endif
+
+#ifdef USE_HOST
+#define USE_SOCKET_IMPL_BSD_SOCKETS
 #endif
 
 // Disabled feature flags
