@@ -8,6 +8,7 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.const import (
     CONF_ARDUINO_VERSION,
+    CONF_AREA,
     CONF_BOARD,
     CONF_BOARD_FLASH_MODE,
     CONF_BUILD_PATH,
@@ -37,7 +38,7 @@ from esphome.const import (
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
-from esphome.helpers import copy_file_if_changed, walk_files
+from esphome.helpers import copy_file_if_changed, get_str_env, walk_files
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,16 +102,6 @@ def valid_project_name(value: str):
     return value
 
 
-def validate_version(value: str):
-    min_version = cv.Version.parse(value)
-    current_version = cv.Version.parse(ESPHOME_VERSION)
-    if current_version < min_version:
-        raise cv.Invalid(
-            f"Your ESPHome version is too old. Please update to at least {min_version}"
-        )
-    return value
-
-
 if "ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT" in os.environ:
     _compile_process_limit_default = min(
         int(os.environ["ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT"]),
@@ -126,6 +117,7 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.Required(CONF_NAME): cv.valid_name,
             cv.Optional(CONF_FRIENDLY_NAME, ""): cv.string,
+            cv.Optional(CONF_AREA, ""): cv.string,
             cv.Optional(CONF_COMMENT): cv.string,
             cv.Required(CONF_BUILD_PATH): cv.string,
             cv.Optional(CONF_PLATFORMIO_OPTIONS, default={}): cv.Schema(
@@ -162,7 +154,7 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
             cv.Optional(CONF_MIN_VERSION, default=ESPHOME_VERSION): cv.All(
-                cv.version_number, validate_version
+                cv.version_number, cv.validate_esphome_version
             ),
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
@@ -198,7 +190,8 @@ def preload_core_config(config, result):
     CORE.data[KEY_CORE] = {}
 
     if CONF_BUILD_PATH not in conf:
-        conf[CONF_BUILD_PATH] = f"build/{CORE.name}"
+        build_path = get_str_env("ESPHOME_BUILD_PATH", "build")
+        conf[CONF_BUILD_PATH] = os.path.join(build_path, CORE.name)
     CORE.build_path = CORE.relative_internal_path(conf[CONF_BUILD_PATH])
 
     has_oldstyle = CONF_PLATFORM in conf
@@ -350,6 +343,7 @@ async def to_code(config):
         cg.App.pre_setup(
             config[CONF_NAME],
             config[CONF_FRIENDLY_NAME],
+            config[CONF_AREA],
             config.get(CONF_COMMENT, ""),
             cg.RawExpression('__DATE__ ", " __TIME__'),
             config[CONF_NAME_ADD_MAC_SUFFIX],
